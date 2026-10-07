@@ -3,7 +3,7 @@
 # Descripción: Instalación de MongoDB 9.0 Community Edition en Debian 13 (Trixie)
 #              usando el repositorio oficial de MongoDB.
 # Autor: ElLucaMx
-# Versión del script: 2.0.0
+# Versión del script: 2.0.1
 # Fecha: 2026-10-07
 # Licencia: MIT
 #
@@ -20,18 +20,23 @@ set -euo pipefail
 # Variables
 # ============================================================
 
-MONGODB_MAJOR_VERSION="9.0"
-MONGODB_KEYRING="/usr/share/keyrings/mongodb-server-${MONGODB_MAJOR_VERSION}.gpg"
-MONGODB_LIST="/etc/apt/sources.list.d/mongodb-org-${MONGODB_MAJOR_VERSION}.list"
+MONGODB_VERSION="9.0"
+MONGODB_KEY_VERSION="9"
+
+MONGODB_KEYRING="/usr/share/keyrings/mongodb-server-${MONGODB_KEY_VERSION}.gpg"
+MONGODB_LIST="/etc/apt/sources.list.d/mongodb-org-${MONGODB_VERSION}.list"
+
 MONGODB_REPOSITORY="https://repo.mongodb.org/apt/debian"
 MONGODB_DISTRIBUTION="trixie"
+
+MONGODB_KEY_URL="https://pgp.mongodb.com/server-${MONGODB_KEY_VERSION}.asc"
 
 # ============================================================
 # Comprobaciones iniciales
 # ============================================================
 
 echo "=============================================="
-echo " Instalación de MongoDB ${MONGODB_MAJOR_VERSION}"
+echo " Instalación de MongoDB ${MONGODB_VERSION}"
 echo " Debian 13 (Trixie)"
 echo "=============================================="
 echo
@@ -60,7 +65,7 @@ fi
 ARCHITECTURE="$(dpkg --print-architecture)"
 
 if [[ "${ARCHITECTURE}" != "amd64" ]]; then
-    echo "ERROR: MongoDB 9.0 para Debian 13 requiere arquitectura x86_64."
+    echo "ERROR: MongoDB ${MONGODB_VERSION} requiere arquitectura x86_64."
     echo "Arquitectura detectada: ${ARCHITECTURE}"
     exit 1
 fi
@@ -74,6 +79,7 @@ echo
 # ============================================================
 
 echo "Actualizando la lista de paquetes..."
+
 sudo apt-get update
 
 # ============================================================
@@ -81,6 +87,7 @@ sudo apt-get update
 # ============================================================
 
 echo "Instalando dependencias necesarias..."
+
 sudo apt-get install -y curl gnupg
 
 # ============================================================
@@ -90,10 +97,15 @@ sudo apt-get install -y curl gnupg
 echo "Configurando la clave GPG de MongoDB..."
 
 if [[ ! -f "${MONGODB_KEYRING}" ]]; then
-    curl -fsSL "https://pgp.mongodb.com/server-${MONGODB_MAJOR_VERSION}.asc" \
+
+    curl -fsSL "${MONGODB_KEY_URL}" \
         | sudo gpg --dearmor -o "${MONGODB_KEYRING}"
+
 else
-    echo "La clave GPG ya existe. No es necesario volver a importarla."
+
+    echo "La clave GPG ya existe."
+    echo "No es necesario volver a importarla."
+
 fi
 
 sudo chmod 644 "${MONGODB_KEYRING}"
@@ -104,7 +116,7 @@ sudo chmod 644 "${MONGODB_KEYRING}"
 
 echo "Configurando el repositorio oficial de MongoDB..."
 
-echo "deb [ signed-by=${MONGODB_KEYRING} ] ${MONGODB_REPOSITORY} ${MONGODB_DISTRIBUTION}/mongodb-org/${MONGODB_MAJOR_VERSION} main" \
+echo "deb [ signed-by=${MONGODB_KEYRING} ] ${MONGODB_REPOSITORY} ${MONGODB_DISTRIBUTION}/mongodb-org/${MONGODB_VERSION} main" \
     | sudo tee "${MONGODB_LIST}" > /dev/null
 
 # ============================================================
@@ -112,13 +124,15 @@ echo "deb [ signed-by=${MONGODB_KEYRING} ] ${MONGODB_REPOSITORY} ${MONGODB_DISTR
 # ============================================================
 
 echo "Actualizando la lista de paquetes con el repositorio de MongoDB..."
+
 sudo apt-get update
 
 # ============================================================
 # 6. Instalar MongoDB
 # ============================================================
 
-echo "Instalando MongoDB ${MONGODB_MAJOR_VERSION}..."
+echo "Instalando MongoDB ${MONGODB_VERSION}..."
+
 sudo apt-get install -y mongodb-org
 
 # ============================================================
@@ -170,7 +184,8 @@ echo "=============================================="
 echo " Instalación completada correctamente"
 echo "=============================================="
 echo
-echo "MongoDB ${MONGODB_MAJOR_VERSION} ha sido instalado"
+
+echo "MongoDB ${MONGODB_VERSION} ha sido instalado"
 echo "en Debian 13 (Trixie)."
 echo
 echo "Servicio: mongod"
