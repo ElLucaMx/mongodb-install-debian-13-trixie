@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 #
 # Descripción: Instalación de MongoDB 9.0 Community Edition en Debian 13 (Trixie)
@@ -177,4 +176,3 @@ echo
 echo "Servicio: mongod"
 echo "Estado: $(sudo systemctl is-active mongod)"
 echo
-```
