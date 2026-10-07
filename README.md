@@ -1,4 +1,3 @@
-```markdown
 <h1 align="center">MongoDB 9.0 en Debian Trixie</h1>
 
 <p align="center">
@@ -179,6 +178,4 @@ Este proyecto se distribuye bajo la licencia **MIT**.
 ## Autor
 
 **ElLucaMx**
-```
-
 Hay un cambio importante respecto al README anterior: he eliminado la frase de que *«MongoDB aún no publica repositorios específicos para Trixie»*. Esa afirmación ya no corresponde con el script actualizado y dejarla ahí sería precisamente el tipo de contradicción que conviene evitar en una documentación técnica.
