@@ -1,53 +1,180 @@
+```bash
 #!/usr/bin/env bash
 #
-# Descripción: Instalación de MongoDB 7.0 en Debian 13 (Trixie) usando el repositorio oficial (bookworm).
+# Descripción: Instalación de MongoDB 9.0 Community Edition en Debian 13 (Trixie)
+#              usando el repositorio oficial de MongoDB.
 # Autor: ElLucaMx
-# Versión del script: 1.0.0
-# Fecha: 2025-12-24
+# Versión del script: 2.0.0
+# Fecha: 2026-10-07
 # Licencia: MIT
 #
-# Notas:
-# - MongoDB todavía no publica repositorio específico para Debian Trixie.
-#   Se utiliza el repositorio de bookworm por compatibilidad oficial.
-#
 # Requisitos:
+# - Debian 13 (Trixie) de 64 bits
+# - Arquitectura x86_64
 # - Usuario con privilegios sudo
 # - Conexión a Internet
 #
 
 set -euo pipefail
 
-# 1. Actualizar apt y preparar dependencias
-echo "Actualizando lista de paquetes..."
-sudo apt update
+# ============================================================
+# Variables
+# ============================================================
 
-echo "Instalando dependencias necesarias (curl, gnupg)..."
-sudo apt install -y curl gnupg
+MONGODB_MAJOR_VERSION="9.0"
+MONGODB_KEYRING="/usr/share/keyrings/mongodb-server-${MONGODB_MAJOR_VERSION}.gpg"
+MONGODB_LIST="/etc/apt/sources.list.d/mongodb-org-${MONGODB_MAJOR_VERSION}.list"
+MONGODB_REPOSITORY="https://repo.mongodb.org/apt/debian"
+MONGODB_DISTRIBUTION="trixie"
 
-# 2. Importar clave GPG de MongoDB 7.0
-echo "Importando clave GPG de MongoDB 7.0..."
-curl -fsSL https://pgp.mongodb.com/server-7.0.asc \
-  | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+# ============================================================
+# Comprobaciones iniciales
+# ============================================================
 
-# 3. Añadir repositorio oficial de MongoDB 7.0 (bookworm, compatible con trixie)
-echo "Configurando repositorio MongoDB 7.0 para Debian Trixie (usando bookworm)..."
-echo "deb [signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] https://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" \
-  | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list > /dev/null
+echo "=============================================="
+echo " Instalación de MongoDB ${MONGODB_MAJOR_VERSION}"
+echo " Debian 13 (Trixie)"
+echo "=============================================="
+echo
 
-# 4. Actualizar e instalar MongoDB
-echo "Actualizando lista de paquetes con el nuevo repositorio..."
-sudo apt update
+echo "Comprobando el sistema operativo..."
 
-echo "Instalando mongodb-org (versión 7.0)..."
-sudo apt install -y mongodb-org
+if [[ ! -f /etc/os-release ]]; then
+    echo "ERROR: No se ha podido determinar el sistema operativo."
+    exit 1
+fi
 
-# 5. Iniciar y habilitar el servicio mongod
-echo "Iniciando y habilitando mongod como servicio systemd..."
+source /etc/os-release
+
+if [[ "${ID}" != "debian" ]]; then
+    echo "ERROR: Este script está diseñado para Debian."
+    echo "Sistema detectado: ${ID}"
+    exit 1
+fi
+
+if [[ "${VERSION_ID}" != "13" ]]; then
+    echo "ERROR: Este script requiere Debian 13 (Trixie)."
+    echo "Versión detectada: Debian ${VERSION_ID}"
+    exit 1
+fi
+
+ARCHITECTURE="$(dpkg --print-architecture)"
+
+if [[ "${ARCHITECTURE}" != "amd64" ]]; then
+    echo "ERROR: MongoDB 9.0 para Debian 13 requiere arquitectura x86_64."
+    echo "Arquitectura detectada: ${ARCHITECTURE}"
+    exit 1
+fi
+
+echo "Sistema operativo: Debian ${VERSION_ID} (${VERSION_CODENAME})"
+echo "Arquitectura: ${ARCHITECTURE}"
+echo
+
+# ============================================================
+# 1. Actualizar repositorios
+# ============================================================
+
+echo "Actualizando la lista de paquetes..."
+sudo apt-get update
+
+# ============================================================
+# 2. Instalar dependencias
+# ============================================================
+
+echo "Instalando dependencias necesarias..."
+sudo apt-get install -y curl gnupg
+
+# ============================================================
+# 3. Importar clave GPG de MongoDB
+# ============================================================
+
+echo "Configurando la clave GPG de MongoDB..."
+
+if [[ ! -f "${MONGODB_KEYRING}" ]]; then
+    curl -fsSL "https://pgp.mongodb.com/server-${MONGODB_MAJOR_VERSION}.asc" \
+        | sudo gpg --dearmor -o "${MONGODB_KEYRING}"
+else
+    echo "La clave GPG ya existe. No es necesario volver a importarla."
+fi
+
+sudo chmod 644 "${MONGODB_KEYRING}"
+
+# ============================================================
+# 4. Configurar repositorio oficial
+# ============================================================
+
+echo "Configurando el repositorio oficial de MongoDB..."
+
+echo "deb [ signed-by=${MONGODB_KEYRING} ] ${MONGODB_REPOSITORY} ${MONGODB_DISTRIBUTION}/mongodb-org/${MONGODB_MAJOR_VERSION} main" \
+    | sudo tee "${MONGODB_LIST}" > /dev/null
+
+# ============================================================
+# 5. Actualizar repositorios
+# ============================================================
+
+echo "Actualizando la lista de paquetes con el repositorio de MongoDB..."
+sudo apt-get update
+
+# ============================================================
+# 6. Instalar MongoDB
+# ============================================================
+
+echo "Instalando MongoDB ${MONGODB_MAJOR_VERSION}..."
+sudo apt-get install -y mongodb-org
+
+# ============================================================
+# 7. Iniciar MongoDB
+# ============================================================
+
+echo "Iniciando el servicio mongod..."
+
 sudo systemctl start mongod
+
+# ============================================================
+# 8. Habilitar MongoDB al arrancar
+# ============================================================
+
+echo "Habilitando mongod para que se inicie automáticamente..."
+
 sudo systemctl enable mongod
 
-# 6. Mostrar estado del servicio
-echo "Estado de mongod:"
-sudo systemctl status mongod --no-pager
+# ============================================================
+# 9. Comprobar estado
+# ============================================================
 
-echo "MongoDB 7.0 se ha instalado correctamente en Debian 13 (Trixie)."
+echo
+echo "=============================================="
+echo " Estado del servicio MongoDB"
+echo "=============================================="
+
+if sudo systemctl is-active --quiet mongod; then
+    echo "MongoDB está funcionando correctamente."
+else
+    echo "ERROR: MongoDB no está funcionando."
+    sudo systemctl status mongod --no-pager
+    exit 1
+fi
+
+# ============================================================
+# 10. Mostrar versión instalada
+# ============================================================
+
+echo
+echo "=============================================="
+echo " Versión instalada"
+echo "=============================================="
+
+mongod --version
+
+echo
+echo "=============================================="
+echo " Instalación completada correctamente"
+echo "=============================================="
+echo
+echo "MongoDB ${MONGODB_MAJOR_VERSION} ha sido instalado"
+echo "en Debian 13 (Trixie)."
+echo
+echo "Servicio: mongod"
+echo "Estado: $(sudo systemctl is-active mongod)"
+echo
+```
