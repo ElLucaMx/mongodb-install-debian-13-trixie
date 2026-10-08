@@ -42,11 +42,7 @@ chmod +x install-mongodb.sh
 ```bash
 ./install-mongodb.sh --client
 ```
-### Sin parámetros
 
-```bash
-./install-mongodb.sh
-```
 ### Ayuda
 
 ```bash
