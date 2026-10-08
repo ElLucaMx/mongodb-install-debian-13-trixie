@@ -110,19 +110,3 @@ sudo apt remove mongodb-mongosh
 ```
 
 Los datos almacenados en `/var/lib/mongodb` pueden requerir eliminación manual.
-
-## Estructura
-
-```text
-.
-├── install-mongodb.sh
-└── README.md
-```
-
-## Licencia
-
-MIT
-
-## Autor
-
-**ElLucaMx**
